@@ -1,14 +1,28 @@
 import ast
 import json
-import re
-import requests
-
 import pandas as pd
 import numpy as np
+import requests
 
 from bs4 import BeautifulSoup
 
 from maps import POI_MAP
+
+
+def _distancia_a_metros(s):
+    '''
+    Convierte una distancia tipo "1,4 Km" o "680 m" a metros (float).
+    Si no puede parsear, devuelve NaN.
+    '''
+    if s is None or (isinstance(s, float) and np.isnan(s)):
+        return np.nan
+    
+    t = str(s).lower().replace(',', '.').replace(' ', '')
+    if 'km' in t:
+        return float(t.replace('km', '')) * 1000
+    if 'm' in t:
+        return float(t.replace('m', ''))
+    return np.nan
 
 
 def _safe_eval(x):
@@ -93,7 +107,6 @@ def obtener_urls(url: str, X: pd.DataFrame) -> list:
     return data
 
 
-
 def aplanar_campos_anidados(X: pd.DataFrame) -> pd.DataFrame:
     '''
     Aplana columnas anidadas provenientes del scraping (dict/list en texto):
@@ -147,22 +160,6 @@ def aplanar_campos_anidados(X: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def distancia_a_metros(s):
-    '''
-    Convierte una distancia tipo "1,4 Km" o "680 m" a metros (float).
-    Si no puede parsear, devuelve NaN.
-    '''
-    if s is None or (isinstance(s, float) and np.isnan(s)):
-        return np.nan
-    
-    t = str(s).lower().replace(',', '.').replace(' ', '')
-    if 'km' in t:
-        return float(t.replace('km', '')) * 1000
-    if 'm' in t:
-        return float(t.replace('m', ''))
-    return np.nan
-
-
 def crear_features_poi(X: pd.DataFrame) -> pd.DataFrame:
     '''
     Genera features numéricas a partir de columnas POI (puntos de interés) que son listas de diccionarios.
@@ -179,10 +176,10 @@ def crear_features_poi(X: pd.DataFrame) -> pd.DataFrame:
         df[f'{pref}_cnt'] = df[col].apply(lambda lst: len(lst) if lst else 0)
 
         df[f'{pref}_min_dist_m'] = df[col].apply(
-            lambda lst: np.nan if not lst else min(distancia_a_metros(d.get('distance'))
+            lambda lst: np.nan if not lst else min(_distancia_a_metros(d.get('distance'))
                 for d in lst
                 if isinstance(d, dict) and d.get('distance'))
-        ).fillna(10000) # La máxima distancia que se representa es 3000, ponemos un valor mucho más alto para los que no tienen ninguna cerca
+        ).fillna(10000)
 
     return df
 
@@ -238,7 +235,7 @@ def limpiar_y_crear_features(X: pd.DataFrame) -> pd.DataFrame:
         s = df['emisiones_energeticas'].astype(str).str.lower().str.replace(',', '.', regex=False)
         df['emisiones_energeticas'] = pd.to_numeric(s.str.extract(r'(\d+(\.\d+)?)')[0], errors='coerce')
 
-    '''
+    ''' Groupby de los datos de muestra.
     categoria
     De época    321957.434783
     Media       269423.411932
