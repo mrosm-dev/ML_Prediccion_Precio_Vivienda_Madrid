@@ -203,6 +203,9 @@ def limpiar_y_crear_features(X: pd.DataFrame) -> pd.DataFrame:
         df['dormitorios'] = (df['dormitorios'].astype(str).str.replace(r'\s*dorm\.', '', regex=True).str.strip())
         df['dormitorios'] = pd.to_numeric(df['dormitorios'], errors='coerce')
 
+    if 'superficie_m2' in df.columns:
+        df['superficie_m2'] = pd.to_numeric(df['superficie_m2'], errors='coerce')
+
     if 'baños' in df.columns:
         df['baños'] = (df['baños'].astype(str).str.replace(r'\s*baño[s]*', '', regex=True).str.strip())
         df['baños'] = pd.to_numeric(df['baños'], errors='coerce')
