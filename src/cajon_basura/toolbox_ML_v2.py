@@ -99,7 +99,7 @@ def tipifica_variables(data:pd.DataFrame, umbral_categorica:int=10, umbral_conti
     '''
 
     describe_data = describe_df(data, umbral_categorica, umbral_continua, False)
-    diccionario = {'Categorica_Binaria': [], 'Categorica_Nominal': [], 'Numerica_Discreta': [], 'Numerica_Continua': [], 'Bajo_Interes': []}
+    diccionario = {'Categorica_Binaria': [], 'Categorica': [], 'Numerica_Discreta': [], 'Numerica_Continua': [], 'Bajo_Interes': []}
     [diccionario[describe_data.loc['Clasificacion_sugerida', columna]].append(columna) for columna in describe_data.columns]
 
     return diccionario

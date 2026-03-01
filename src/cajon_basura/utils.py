@@ -11,6 +11,25 @@ from bs4 import BeautifulSoup
 from maps import POI_MAP
 
 
+def _safe_eval(x):
+    '''
+    Convierte strings tipo "{...}" o "[...]" en dict/list de forma segura.
+    Si ya es dict/list lo devuelve tal cual.
+    En caso de NaN o error, devuelve {}.
+    '''
+    if isinstance(x, (dict, list)):
+        return x
+    if pd.isna(x):
+        return {}
+    s = str(x).strip()
+    if s in ('', '{}', '[]', 'None', 'nan'):
+        return {}
+    try:
+        return ast.literal_eval(s)
+    except Exception:
+        return {}
+    
+
 def extraer_informacion(url: str) -> list:
     '''
     Función para extraer la información relevante de la página de un anuncio.
@@ -45,11 +64,13 @@ def extraer_informacion(url: str) -> list:
     return data
 
 
-def obtener_urls(url: str, df: pd.DataFrame) -> list:
+def obtener_urls(url: str, X: pd.DataFrame) -> list:
     '''
     Función para extraer las url de los anuncios de la página.
     '''
 
+    df = X.copy()
+    
     print(f'Buscando pisos en la página {url} ...')
     response = requests.get(url, timeout=10)
     soup = BeautifulSoup(response.text, 'html.parser')
@@ -72,28 +93,11 @@ def obtener_urls(url: str, df: pd.DataFrame) -> list:
     return data
 
 
-def _safe_eval(x):
-    '''
-    Convierte strings tipo "{...}" o "[...]" en dict/list de forma segura.
-    Si ya es dict/list lo devuelve tal cual.
-    En caso de NaN o error, devuelve {}.
-    '''
-    if isinstance(x, (dict, list)):
-        return x
-    if pd.isna(x):
-        return {}
-    s = str(x).strip()
-    if s in ('', '{}', '[]', 'None', 'nan'):
-        return {}
-    try:
-        return ast.literal_eval(s)
-    except Exception:
-        return {}
 
 def aplanar_campos_anidados(X: pd.DataFrame) -> pd.DataFrame:
     '''
     Aplana columnas anidadas provenientes del scraping (dict/list en texto):
-    - features, precio, media, points_of_interest, energy_data
+    - features, media, points_of_interest, energy_data
 
     Crea columnas planas como:
     - planta, ascensor, calefaccion, categoria, ano_construccion
@@ -101,9 +105,10 @@ def aplanar_campos_anidados(X: pd.DataFrame) -> pd.DataFrame:
     - transporte_publico, escuelas, farmacias, ...
     - clase_energetica, eficiencia_energetica, emisiones_energeticas
     '''
+
     df = X.copy()
 
-    for c in ['features', 'precio', 'media', 'points_of_interest', 'energy_data']:
+    for c in ['features', 'media', 'points_of_interest', 'energy_data']:
         if c in df.columns:
             df[c] = df[c].apply(_safe_eval)
 
@@ -119,7 +124,7 @@ def aplanar_campos_anidados(X: pd.DataFrame) -> pd.DataFrame:
     if 'media' in df.columns:
         m = df['media']
         df['planos'] = m.apply(lambda d: d.get('floor_plans') is not None)
-        df['realista'] = m.apply(lambda d: d.get('has_realistico')).astype(int)
+        df['realista'] = m.apply(lambda d: d.get('has_realistico') is not False)
         df['fotografias'] = m.apply(lambda d: len(d.get('images', [])) if isinstance(d.get('images', []), list) else 0)
 
     if 'points_of_interest' in df.columns:
@@ -141,6 +146,7 @@ def aplanar_campos_anidados(X: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def distancia_a_metros(s):
     '''
     Convierte una distancia tipo "1,4 Km" o "680 m" a metros (float).
@@ -148,12 +154,14 @@ def distancia_a_metros(s):
     '''
     if s is None or (isinstance(s, float) and np.isnan(s)):
         return np.nan
+    
     t = str(s).lower().replace(',', '.').replace(' ', '')
     if 'km' in t:
         return float(t.replace('km', '')) * 1000
     if 'm' in t:
         return float(t.replace('m', ''))
     return np.nan
+
 
 def crear_features_poi(X: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -174,9 +182,10 @@ def crear_features_poi(X: pd.DataFrame) -> pd.DataFrame:
             lambda lst: np.nan if not lst else min(distancia_a_metros(d.get('distance'))
                 for d in lst
                 if isinstance(d, dict) and d.get('distance'))
-        )
+        ).fillna(10000) # La máxima distancia que se representa es 3000, ponemos un valor mucho más alto para los que no tienen ninguna cerca
 
     return df
+
 
 def limpiar_y_crear_features(X: pd.DataFrame) -> pd.DataFrame:
     '''
@@ -206,17 +215,17 @@ def limpiar_y_crear_features(X: pd.DataFrame) -> pd.DataFrame:
         q3 = num.quantile(0.75)
 
         df['planta'] = pd.to_numeric(
-            df['planta'].replace({'Planta baja': 0, 'Baja': 0, 'Media': med, 'Alta': q3, 'Ático': q3}),errors='coerce'
+            df['planta'].replace({'Planta baja': 0, 'Baja': 0, 'Media': med, 'Alta': q3, 'Ático': q3}), errors='coerce'
         )
 
     if 'aire_acondicionado' in df.columns:
-        df['aire_acondicionado'] = (df['aire_acondicionado'].astype(str).str.replace(r'\s+.+', '', regex=True).str.strip())
+        df['aire_acondicionado'] = (df['aire_acondicionado'].astype(str).str.replace(r'\s+.+', '', regex=True).str.strip()).fillna('NO')
 
     if 'calefaccion' in df.columns:
         cal = df['calefaccion'].astype(str)
         df['calefaccion_gas'] = cal.str.contains('gas', case=False, na=False)
         df['calefaccion_electrica'] = cal.str.contains('eléctrica|electrica', case=False, na=False)
-        df['calefaccion'] = cal.str.replace(r'\s+.+', '', regex=True).str.strip()
+        df['calefaccion'] = cal.str.replace(r'\s+.+', '', regex=True).str.strip().fillna('NO')
 
     if 'eficiencia_energetica' in df.columns:
         s = df['eficiencia_energetica'].astype(str).str.lower().str.replace(',', '.', regex=False)
@@ -226,13 +235,21 @@ def limpiar_y_crear_features(X: pd.DataFrame) -> pd.DataFrame:
         s = df['emisiones_energeticas'].astype(str).str.lower().str.replace(',', '.', regex=False)
         df['emisiones_energeticas'] = pd.to_numeric(s.str.extract(r'(\d+(\.\d+)?)')[0], errors='coerce')
 
+    '''
+    categoria
+    De época    321957.434783
+    Media       269423.411932
+    Popular     288484.622120
+    Señorial    408431.932203
+    '''
     if 'categoria' in df.columns:
-        map_cat = {'Popular': 0, 'Media': 1, 'De época': 2, 'Señorial': 3}
+        map_cat = {'Popular': 0, 'Media': 0, 'De época': 1, 'Señorial': 2}
         df['categoria_ord'] = df['categoria'].map(map_cat)
 
     if 'clase_energetica' in df.columns:
         map_energy = {'g': 0, 'f': 1, 'e': 2, 'd': 3, 'c': 4, 'b': 5, 'a': 6}
         df['clase_energetica_ord'] = df['clase_energetica'].astype(str).str.lower().map(map_energy)
+        df['tiene_certificado'] = ~df['clase_energetica'].isna()
 
     for c in ['categoria', 'clase_energetica']:
         if c in df.columns:
@@ -250,4 +267,3 @@ def limpiar_y_crear_features(X: pd.DataFrame) -> pd.DataFrame:
                      .astype(int))
 
     return df
-
