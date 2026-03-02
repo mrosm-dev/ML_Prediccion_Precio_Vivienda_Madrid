@@ -1,218 +1,188 @@
 # ML_Prediccion_Precio_Vivienda_Madrid
 
-🏠 Estimación de Precios Inmobiliarios con Machine Learning
-📌 Descripción del proyecto
+# 🏠 Estimación de Precios Inmobiliarios con Machine Learning
 
-Este proyecto desarrolla un modelo de Machine Learning supervisado para estimar el precio de publicación de viviendas a partir de datos estructurales y geográficos extraídos de anuncios inmobiliarios.
+Proyecto end-to-end de Machine Learning para la **predicción del precio de publicación de viviendas** a partir de datos estructurales y geográficos extraídos de anuncios inmobiliarios.
 
-El objetivo es construir un sistema reproducible y preparado para producción que permita:
+---
 
-Estimar precios de mercado.
+## 🎯 Objetivo
 
-Detectar posibles anuncios sobrevalorados o infravalorados.
+Construir un modelo supervisado de regresión capaz de:
 
-Analizar el impacto de variables estructurales y de ubicación en el precio.
+- Estimar precios de mercado.
+- Detectar anuncios potencialmente sobrevalorados o infravalorados.
+- Analizar el impacto de variables estructurales y de ubicación.
+- Implementar una arquitectura reproducible y preparada para producción.
 
-El proyecto sigue un enfoque end-to-end, desde el análisis exploratorio hasta la optimización del modelo final.
+---
 
-🗂 Dataset
+## 🗂 Dataset
 
-Cada fila representa un anuncio inmobiliario e incluye variables como:
+Cada fila representa un anuncio inmobiliario e incluye:
 
-Superficie en metros cuadrados
+- 📐 Superficie (m²)  
+- 🛏 Dormitorios  
+- 🛁 Baños  
+- 📍 Latitud y longitud  
+- 🏢 Características estructurales  
+- ⚡ Información energética  
+- 📌 Distancias a puntos de interés  
 
-Número de dormitorios
+La variable objetivo (`y`) es el **precio en euros**, extraído de la clave `price`.
 
-Número de baños
+Se eliminaron variables derivadas del precio para evitar **data leakage**.
 
-Coordenadas geográficas (latitud, longitud)
+---
 
-Variables estructurales adicionales
+## 🔎 Análisis Exploratorio (EDA)
 
-Información energética
+Durante el análisis se evaluaron:
 
-Distancias a puntos de interés
+- Distribución del precio (cola derecha pronunciada).
+- Valores nulos.
+- Distribuciones numéricas.
+- Impacto de variables categóricas.
+- Correlaciones (Pearson y Spearman).
+- Colinealidad entre variables.
 
-Algunas columnas presentan estructuras semiestructuradas (diccionarios), que fueron normalizadas antes del modelado.
+Observaciones clave:
 
-La variable objetivo (y) es el precio de publicación en euros, extraído de la clave price dentro de la columna precio.
+- Relación monótona clara entre superficie y precio.
+- Incremento estructural del precio con mayor número de baños.
+- Influencia significativa de la ubicación.
+- Mejora en correlaciones tras aplicar log al target.
 
-Se eliminaron variables derivadas del precio para evitar data leakage.
+---
 
-🔎 Análisis Exploratorio (EDA)
+## 🧠 Feature Engineering
 
-Durante el EDA se analizaron:
+Se incorporaron transformaciones estructurales y un componente no supervisado.
 
-Distribución del precio (cola derecha pronunciada).
+### 📍 Clustering Geográfico
 
-Presencia de valores nulos.
-
-Distribución de variables numéricas.
-
-Impacto preliminar de variables categóricas.
-
-Correlaciones con Pearson y Spearman.
-
-Matriz de correlación para evaluar colinealidad.
-
-Se observó:
-
-Relación monótona clara entre superficie y precio.
-
-Incremento estructural del precio con mayor número de baños.
-
-Influencia relevante de la ubicación.
-
-Dado el sesgo del target, se evaluó el uso del logaritmo del precio.
-
-🧠 Feature Engineering
-
-Se aplicaron transformaciones estructurales y se incorporó un componente no supervisado:
-
-Clustering Geográfico
-
-Se aplicó K-Means sobre latitud y longitud para generar una variable cluster que actúa como proxy de zona.
+Se aplicó **K-Means** sobre latitud y longitud para generar una variable `cluster` como proxy de zona.
 
 Proceso:
 
-Escalado con StandardScaler.
+1. Escalado con `StandardScaler`.
+2. Selección de `k` mediante método del codo y Silhouette Score.
+3. Integración como feature categórica en el pipeline.
 
-Selección de k mediante método del codo y Silhouette Score.
+Esto permite capturar patrones espaciales sin introducir fuga de información.
 
-Integración como feature categórica dentro del pipeline.
+---
 
-Este enfoque permite capturar patrones espaciales sin introducir fuga de información.
+## ⚙️ Arquitectura
 
-⚙️ Pipeline y Arquitectura
+El flujo completo se implementó con:
 
-El flujo completo se implementó utilizando:
-
-Pipeline
-
-ColumnTransformer
-
-Transformadores personalizados
-
-Validación cruzada
+- `Pipeline`
+- `ColumnTransformer`
+- Transformadores personalizados
+- Validación cruzada
 
 Se construyeron dos variantes de preprocesamiento:
 
-Sin escalado (para modelos basados en árboles y boosting).
+- Sin escalado → modelos basados en árboles y boosting.
+- Con escalado → modelos lineales y KNN.
 
-Con escalado (para modelos lineales y KNN).
+Beneficios:
 
-Esto garantiza:
+- Reproducibilidad
+- Modularidad
+- Preparación para producción
+- Sin data leakage
 
-Reproducibilidad
+---
 
-Ausencia de data leakage
-
-Preparación para producción
-
-📊 Modelos Evaluados
+## 🤖 Modelos Evaluados
 
 Se entrenaron y compararon:
 
-Decision Tree
+- Decision Tree  
+- Random Forest  
+- XGBoost  
+- LightGBM  
+- CatBoost  
+- KNN  
+- Regresión Lineal  
 
-Random Forest
+### 📊 Métrica utilizada
 
-XGBoost
+**MAPE (Mean Absolute Percentage Error)**  
 
-LightGBM
+Un MAPE de 0.15 implica un error promedio del 15%.
 
-CatBoost
+---
 
-KNN
+## 🚀 Optimización
 
-Regresión Lineal
+Se utilizó **Optuna** para optimizar:
 
-Métrica utilizada
+- XGBoost  
+- LightGBM  
+- CatBoost  
 
-Se utilizó MAPE (Mean Absolute Percentage Error), que mide el error relativo promedio.
+Resultados:
 
-Un MAPE de 0.15 implica un error medio del 15%.
-
-🚀 Optimización
-
-Se utilizó Optuna para optimizar hiperparámetros de:
-
-XGBoost
-
-LightGBM
-
-CatBoost
-
-Resultados finales:
-
-XGBoost: 0.1475
-
-LightGBM: 0.1549
-
-CatBoost: 0.1594
+| Modelo      | MAPE  |
+|-------------|--------|
+| XGBoost     | **0.1475** |
+| LightGBM    | 0.1549 |
+| CatBoost    | 0.1594 |
 
 XGBoost fue seleccionado como modelo final por:
 
-Mejor MAPE.
+- Mejor rendimiento.
+- Mejor alineación real vs predicho.
+- Menor tiempo de entrenamiento.
 
-Mejor alineación entre valores reales y predichos.
+---
 
-Menor tiempo de entrenamiento.
+## 📈 Resultados Finales
 
-📈 Resultados Finales
+El modelo final alcanza aproximadamente:
 
-El modelo final alcanza aproximadamente un 14.7% de error porcentual medio sobre el conjunto de validación.
+> **14.7% de error porcentual medio**
 
-El pipeline completo permite:
+El pipeline permite entrenamiento reproducible y evaluación consistente.
 
-Entrenamiento reproducible.
+---
 
-Evaluación consistente.
+## 🏗 Mejoras Futuras
 
-Integración sencilla en entorno productivo.
+- Incorporar embeddings geográficos más avanzados.
+- Stacking o blending de modelos.
+- Incorporar NLP sobre la descripción.
+- Separar preprocesamiento estático para acelerar optimización.
 
-🏗 Posibles Mejoras Futuras
+---
 
-Incorporar embeddings geográficos más avanzados.
+## 🧩 Tecnologías Utilizadas
 
-Evaluar stacking o blending de modelos.
+- Python  
+- Pandas  
+- NumPy  
+- Scikit-learn  
+- XGBoost  
+- LightGBM  
+- CatBoost  
+- Optuna  
+- Matplotlib / Seaborn  
 
-Incorporar información textual de la descripción mediante NLP.
+---
 
-Optimizar tiempos separando preprocesamiento estático.
+## 🧠 Conclusión
 
-🧩 Tecnologías Utilizadas
+Este proyecto demuestra un flujo completo de Machine Learning aplicado a un caso real:
 
-Python
+- EDA estructurado  
+- Feature engineering geográfico  
+- Comparación sistemática de modelos  
+- Optimización automatizada  
+- Arquitectura modular y reproducible  
 
-Pandas
-
-NumPy
-
-Scikit-learn
-
-XGBoost
-
-LightGBM
-
-CatBoost
-
-Optuna
-
-Matplotlib / Seaborn
-
-🎯 Conclusión
-
-Este proyecto demuestra un flujo completo de Machine Learning aplicado a un caso real de estimación inmobiliaria, integrando:
-
-EDA estructurado
-
-Feature engineering geográfico
-
-Comparación sistemática de modelos
-
-Optimización automatizada
-
-Arquitectura modular y reproducible
+El resultado es un modelo robusto, interpretable y preparado para escalar en entorno productivo.
 
 El resultado es un modelo robusto, interpretable y preparado para escalar en un entorno real.
