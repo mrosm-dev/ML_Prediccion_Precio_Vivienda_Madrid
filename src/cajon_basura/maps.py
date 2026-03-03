@@ -8,3 +8,7 @@ POI_MAP = {
     "bares": "bar",
     "restaurantes": "resto",
 }
+
+DROP_COLS = ['url', 'features', 'descripcion', 'precio', 'media', 'points_of_interest',
+             'energy_data', 'transporte_publico', 'escuelas', 'farmacias', 'hospitales',
+             'supermercados', 'tiendas', 'bares', 'restaurantes']

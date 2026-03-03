@@ -14,7 +14,7 @@ from sklearn.model_selection import cross_val_score
 
 from lightgbm import LGBMRegressor
 
-from maps import POI_MAP
+from maps import POI_MAP, DROP_COLS
 
 from xgboost import XGBRegressor
 
@@ -367,3 +367,7 @@ def make_objective_cat(X, y, preprocess, cv=5):
         return score
 
     return objective
+
+
+def drop_columns(df):
+    return df.drop(columns=[c for c in DROP_COLS if c in df.columns], errors='ignore')
