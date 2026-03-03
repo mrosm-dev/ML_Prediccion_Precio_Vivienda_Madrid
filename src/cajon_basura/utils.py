@@ -6,7 +6,18 @@ import requests
 
 from bs4 import BeautifulSoup
 
+from catboost import CatBoostRegressor
+
+from sklearn.pipeline import Pipeline
+from sklearn.compose import TransformedTargetRegressor
+from sklearn.model_selection import cross_val_score
+
+from lightgbm import LGBMRegressor
+
 from maps import POI_MAP
+
+from xgboost import XGBRegressor
+
 
 
 def _distancia_a_metros(s):
@@ -267,3 +278,92 @@ def limpiar_y_crear_features(X: pd.DataFrame) -> pd.DataFrame:
                      .astype(int))
 
     return df
+
+
+def make_objective_xgb(X, y, preprocess, cv=5):
+
+    def objective(trial):
+
+        model = XGBRegressor(random_state=42, objective='reg:absoluteerror', n_jobs=-1)
+
+        pipe = Pipeline([('preprocess', preprocess), ('model', model)])
+
+        params = {
+            'model__n_estimators': trial.suggest_int('model__n_estimators', 500, 1200),
+            'model__learning_rate': trial.suggest_float('model__learning_rate', 0.01, 0.15, log=True),
+            'model__max_depth': trial.suggest_int('model__max_depth', 4, 8),
+            'model__min_child_weight': trial.suggest_int('model__min_child_weight', 1, 5),
+            'model__subsample': trial.suggest_float('model__subsample', 0.7, 1.0),
+            'model__colsample_bytree': trial.suggest_float('model__colsample_bytree', 0.7, 1.0),
+            'model__reg_alpha': trial.suggest_float('model__reg_alpha', 1e-3, 1.0, log=True),
+            'model__reg_lambda': trial.suggest_float('model__reg_lambda', 1.0, 5.0),
+        }
+
+        pipe.set_params(**params)
+
+        model_log = TransformedTargetRegressor(regressor=pipe, func=np.log1p, inverse_func=np.expm1)
+
+        score = cross_val_score(model_log, X, y, cv=cv, scoring='neg_mean_absolute_percentage_error', n_jobs=-1).mean()
+
+        return score
+
+    return objective
+
+
+def make_objective_lgb(X, y, preprocess, cv=5):
+
+    def objective(trial):
+
+        model = LGBMRegressor(random_state=42, n_jobs=-1, objective='regression', verbosity=-1)
+
+        pipe = Pipeline(steps=[('preprocess', preprocess), ('model', model)])
+        
+        params = {
+            'model__n_estimators': trial.suggest_int('model__n_estimators', 500, 1200),
+            'model__learning_rate': trial.suggest_float('model__learning_rate', 0.01, 0.15, log=True),
+            'model__max_depth': trial.suggest_int('model__max_depth', 4, 12),
+            'model__num_leaves': trial.suggest_int('model__num_leaves', 20, 100),
+            'model__min_child_samples': trial.suggest_int('model__min_child_samples', 5, 50),
+            'model__subsample': trial.suggest_float('model__subsample', 0.7, 1.0),
+            'model__colsample_bytree': trial.suggest_float('model__colsample_bytree', 0.7, 1.0),
+            'model__reg_alpha': trial.suggest_float('model__reg_alpha', 1e-3, 1.0, log=True),
+            'model__reg_lambda': trial.suggest_float('model__reg_lambda', 1.0, 5.0),
+        }
+
+        pipe.set_params(**params)
+
+        model_log = TransformedTargetRegressor(regressor=pipe, func=np.log1p, inverse_func=np.expm1)
+
+        score = cross_val_score(model_log, X, y, cv=cv, scoring='neg_mean_absolute_percentage_error', n_jobs=-1).mean()
+
+        return score
+
+    return objective
+
+
+def make_objective_cat(X, y, preprocess, cv=5):
+
+    def objective(trial):
+
+        model = CatBoostRegressor(random_state=42, loss_function="MAPE",verbose=False,)
+
+        pipe = Pipeline(steps=[('preprocess', preprocess), ("model", model)])
+
+        params = {
+            "model__depth": trial.suggest_int("model__depth", 6, 10),
+            "model__learning_rate": trial.suggest_float("model__learning_rate", 0.01, 0.15, log=True),
+            "model__iterations": trial.suggest_int("model__iterations", 500, 1200),
+            "model__l2_leaf_reg": trial.suggest_float("model__l2_leaf_reg", 1.0, 10.0),
+            "model__subsample": trial.suggest_float("model__subsample", 0.7, 1.0),
+            "model__random_strength": trial.suggest_float("model__random_strength", 0.5, 2.0),
+        }
+
+        pipe.set_params(**params)
+
+        model_log = TransformedTargetRegressor(regressor=pipe, func=np.log1p, inverse_func=np.expm1)
+
+        score = cross_val_score(model_log, X, y, cv=cv, scoring='neg_mean_absolute_percentage_error', n_jobs=-1).mean()
+
+        return score
+
+    return objective
