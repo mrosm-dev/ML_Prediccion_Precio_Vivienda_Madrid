@@ -16,6 +16,8 @@ from lightgbm import LGBMRegressor
 
 from .maps import POI_MAP, DROP_COLS
 
+from time import time
+
 from xgboost import XGBRegressor
 
 
@@ -371,3 +373,38 @@ def make_objective_cat(X, y, preprocess, cv=5):
 
 def drop_columns(df):
     return df.drop(columns=[c for c in DROP_COLS if c in df.columns], errors='ignore')
+
+
+def performar_tiempo(X, y, preprocess, best_params, columna=None):
+
+    if columna:
+        X = X.drop(columns=columna)
+
+    lista_col = []
+    train_time = []
+    score = []
+
+    xgb_base = XGBRegressor(random_state=42, objective='reg:absoluteerror', n_jobs=-1)
+    pipe = Pipeline(steps=[('preprocess', preprocess), ('model', xgb_base)])
+    pipe.set_params(**best_params)
+    pipe_log = TransformedTargetRegressor(regressor=pipe, func=np.log1p, inverse_func=np.expm1)
+
+    for col in X.columns:
+
+        print(f'Ocultando {col}...', end='\t')
+        lista_col.append(col)
+        X_menos = X.drop(columns=col)
+
+        start = time()
+        pipe_log.fit(X_menos, y)
+        train_time.append(time() - start)
+
+        score.append(cross_val_score(pipe_log, X_menos, y, cv=5, scoring="neg_mean_absolute_percentage_error", n_jobs=-1).mean())
+    
+    resultados = pd.DataFrame({'columna': lista_col, 'score': score, 'time': train_time}).set_index('columna').sort_values('score', ascending=False).iloc[0]
+
+    if len(X.columns) > 2:
+        print(f'Eliminamos {resultados.name}...')
+        resultados = pd.concat([resultados, performar_tiempo(X, y, preprocess, best_params, resultados.name)], axis=1)
+
+    return resultados
