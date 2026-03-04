@@ -15,9 +15,9 @@ DROP_COLS = ['url', 'features', 'descripcion', 'precio', 'media', 'points_of_int
              'supermercados', 'tiendas', 'bares', 'restaurantes']
 
 
-COLS_OPTIMIZE = ['hosp_min_dist_m', 'super_cnt', 'realista', 'tiene_certificado',
-                 'bar_min_dist_m', 'tda_min_dist_m', 'esc_min_dist_m', 'fca_cnt',
-                 'calefaccion_electrica', 'eficiencia_energetica', 'resto_min_dist_m',
-                 'fotografias', 'tda_cnt', 'emisiones_energeticas', 'tp_cnt',
-                 'super_min_dist_m', 'aire_acondicionado', 'resto_cnt', 'tp_min_dist_m',
-                 'cluster', 'fca_min_dist_m', 'categoria_ord', 'calefaccion_gas', 'bar_cnt']
+COLS_OPTIMIZE = ['realista', 'tiene_certificado', 'aire_acondicionado', 'cluster', 'resto_cnt',
+                 'tda_min_dist_m', 'fca_cnt', 'super_min_dist_m', 'bar_min_dist_m', 'esc_min_dist_m',
+                 'tda_cnt', 'ascensor', 'emisiones_energeticas', 'bar_cnt', 'calefaccion_electrica',
+                 'eficiencia_energetica', 'super_cnt', 'planos', 'tp_min_dist_m', 'clase_energetica_ord',
+                 'esc_cnt', 'hosp_cnt', 'categoria_ord', 'fotografias', 'resto_min_dist_m', 'calefaccion_gas',
+                 'tp_cnt']
