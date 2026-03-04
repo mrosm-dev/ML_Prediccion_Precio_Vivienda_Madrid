@@ -112,51 +112,6 @@ Se entrenaron y compararon:
 
 **MAPE (Mean Absolute Percentage Error)**  
 
-Un MAPE de 0.15 implica un error promedio del 15%.
-
----
-
-## 🚀 Optimización
-
-Se utilizó **Optuna** para optimizar:
-
-- XGBoost  
-- LightGBM  
-- CatBoost  
-
-Resultados:
-
-| Modelo      | MAPE  |
-|-------------|--------|
-| XGBoost     | **0.1475** |
-| LightGBM    | 0.1549 |
-| CatBoost    | 0.1594 |
-
-XGBoost fue seleccionado como modelo final por:
-
-- Mejor rendimiento.
-- Mejor alineación real vs predicho.
-- Menor tiempo de entrenamiento.
-
----
-
-## 📈 Resultados Finales
-
-El modelo final alcanza aproximadamente:
-
-> **14.7% de error porcentual medio**
-
-El pipeline permite entrenamiento reproducible y evaluación consistente.
-
----
-
-## 🏗 Mejoras Futuras
-
-- Incorporar embeddings geográficos más avanzados.
-- Stacking o blending de modelos.
-- Incorporar NLP sobre la descripción.
-- Separar preprocesamiento estático para acelerar optimización.
-
 ---
 
 ## 🧩 Tecnologías Utilizadas
